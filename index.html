@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web ADB - Rokid Manager</title>
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* 自定义滚动条 */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 p-4 md:p-6 min-h-screen">
+    <!-- 标题 -->
+    <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">
+      🔧 Rokid ADB Manager
+    </h1>
+
+    <!-- 主容器 -->
+    <div
+      class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-5"
+    >
+      <!-- 左侧功能区 -->
+      <div class="flex flex-col gap-4">
+        <!-- 设备连接 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            📱 设备连接
+          </h3>
+          <div class="flex items-center gap-3">
+            <button
+              id="connectBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded transition-all hover:-translate-y-0.5"
+            >
+              🔌 连接设备
+            </button>
+            <span id="status" class="font-semibold text-sm">未连接</span>
+          </div>
+        </div>
+
+        <!-- 自启动管理 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            🚀 自启动管理 (init.json)
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              id="viewInitBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              📄 查看
+            </button>
+            <button
+              id="backupInitBtn"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              💾 备份
+            </button>
+            <button
+              id="deleteInitBtn"
+              class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              🗑️ 删除
+            </button>
+          </div>
+          <p class="text-gray-600 text-xs mt-3 italic">
+            ⚠️ 删除 init.json 将禁用自启动应用
+          </p>
+        </div>
+
+        <!-- 录屏文件管理 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            🎬 录屏文件管理 (ScreenRecorder)
+          </h3>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <button
+              id="listVideosBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              📂 列出文件
+            </button>
+            <button
+              id="exportVideosBtn"
+              disabled
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              📦 打包下载选中
+            </button>
+          </div>
+
+          <!-- 视频列表容器 -->
+          <div id="videoListContainer" class="hidden">
+            <!-- 全选 -->
+            <div class="bg-gray-50 rounded p-3 mb-3 flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="selectAllVideos"
+                class="w-5 h-5 cursor-pointer accent-blue-600"
+              />
+              <label
+                for="selectAllVideos"
+                class="cursor-pointer text-sm font-semibold"
+              >
+                全选 (<span id="selectedCount">0</span> 个已选)
+              </label>
+            </div>
+            <!-- 文件列表 -->
+            <div
+              id="videoList"
+              class="max-h-[300px] overflow-y-auto bg-gray-50 p-2.5 rounded custom-scrollbar"
+            ></div>
+          </div>
+        </div>
+
+        <!-- APK 管理 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            📦 APK 管理
+          </h3>
+          <!-- 安装 APK -->
+          <div class="mb-4">
+            <p class="text-xs text-gray-500 mb-2 font-semibold">安装 APK</p>
+            <div class="flex gap-2">
+              <label
+                id="apkFileLabel"
+                class="flex-1 flex items-center gap-2 px-3 py-2 border border-dashed border-gray-400 rounded text-sm cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors truncate"
+              >
+                <span>📂</span>
+                <span id="apkFileName" class="truncate text-gray-500">点击选择 .apk 文件</span>
+                <input id="apkFile" type="file" accept=".apk" class="hidden" />
+              </label>
+              <button
+                id="installApkBtn"
+                disabled
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5 whitespace-nowrap disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                ⬆️ 安装
+              </button>
+            </div>
+            <p class="text-gray-500 text-xs mt-1.5 italic">⚠️ 安装前请确保设备已开启「允许未知来源」</p>
+          </div>
+          <!-- 卸载 APK -->
+          <div>
+            <p class="text-xs text-gray-500 mb-2 font-semibold">卸载应用</p>
+            <div class="flex gap-2">
+              <input
+                id="uninstallPkg"
+                type="text"
+                placeholder="输入包名，如 com.example.app"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                id="uninstallApkBtn"
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+              >
+                🗑️ 卸载
+              </button>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <button
+                id="listPkgsBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+              >
+                📋 列出已安装应用
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 自定义命令 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            ⌨️ 自定义命令
+          </h3>
+          <div class="flex gap-2">
+            <input
+              id="command"
+              type="text"
+              placeholder="输入 ADB Shell 命令"
+              value="getprop ro.product.model"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              id="runBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm transition-all hover:-translate-y-0.5 whitespace-nowrap"
+            >
+              ▶️ 执行
+            </button>
+          </div>
+        </div>
+
+        <!-- 快捷操作 -->
+        <div class="bg-white rounded-lg shadow-md p-5">
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            ⚡ 快捷操作
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              id="screenshotBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              📸 截图
+            </button>
+            <button
+              id="deviceInfoBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              ℹ️ 设备信息
+            </button>
+            <button
+              id="listFilesBtn"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              📁 查看 /sdcard/
+            </button>
+            <button
+              id="rebootBtn"
+              class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-all hover:-translate-y-0.5"
+            >
+              🔄 重启设备
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧输出区（固定显示） -->
+      <div class="lg:sticky lg:top-5 h-fit max-h-[calc(100vh-40px)]">
+        <div
+          class="bg-white rounded-lg shadow-md p-5 flex flex-col h-[400px] lg:h-[calc(100vh-40px)]"
+        >
+          <h3
+            class="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4"
+          >
+            📋 实时输出
+          </h3>
+          <pre
+            id="output"
+            class="flex-1 bg-gray-900 text-gray-300 p-4 rounded overflow-auto text-xs leading-relaxed font-mono custom-scrollbar"
+          >
+等待操作...</pre
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- 引入 JSZip -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

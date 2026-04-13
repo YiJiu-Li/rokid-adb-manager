@@ -1,0 +1,16 @@
+{
+  "name": "web-adb",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@yume-chan/adb": "^0.0.19",
+    "@yume-chan/adb-backend-webusb": "^0.0.19"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
